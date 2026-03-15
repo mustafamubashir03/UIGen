@@ -11,7 +11,7 @@
 # const sandbox = await Sandbox.create('uigen-nextjs-build')
 
 team_id = "5c53a60f-8efe-4527-b4b9-4a21b1d7808b"
-start_cmd = "/compile_page.sh"
+start_cmd = "/home/user/compile_page.sh"
 dockerfile = "e2b.Dockerfile"
 template_name = "uigen-nextjs-build"
 template_id = "2uq5kp8t8s068kjjugf4"

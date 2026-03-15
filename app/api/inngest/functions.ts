@@ -1,244 +1,165 @@
-
-import {
-  gemini,
-  createAgent,
-  createTool,
-  createNetwork,
-} from "@inngest/agent-kit";
+import { openai, createAgent, createTool, createNetwork, createState } from "@inngest/agent-kit";
 import Sandbox from "@e2b/code-interpreter";
 import z from "zod";
-import { FRAGMENT_TITLE_PROMPT, PROMPT, RESPONSE_PROMPT } from "@/prompt";
+import { PROMPT } from "@/prompt";
 import { inngest } from "@/inngest/client";
 import { lastAssistantTextMessageContent } from "@/inngest/utils";
 
+const E2B_SANDBOX_TEMPLATE = process.env.E2B_SANDBOX_TEMPLATE ?? "uigen-nextjs-build";
 
 export const codeAgentFunction = inngest.createFunction(
   { id: "code-agent" },
   { event: "code-agent/run" },
-
   async ({ event, step }) => {
-    // Step-1
+
+    // 1️⃣ Connect to prebuilt sandbox
     const sandboxId = await step.run("get-sandbox-id", async () => {
-      const sandbox = await Sandbox.create("mustafamubashir87/uigen-nextjs-build");
+      const sandbox = await Sandbox.create(E2B_SANDBOX_TEMPLATE);
+
+      // Ensure page.tsx exists
+      try {
+        await sandbox.files.read("app/page.tsx");
+      } catch {
+        await sandbox.files.write(
+          "app/page.tsx",
+          `"use client";\nexport default function Home(){ return <div>Loading...</div>; }`
+        );
+      }
+
       return sandbox.sandboxId;
     });
+    // Ensure shadcn cn utility exists
+    await step.run("ensure-cn-utility", async () => {
+      const sandbox = await Sandbox.connect(sandboxId);
+      try {
+        await sandbox.files.read("lib/utils.ts");
+      } catch {
+        await sandbox.files.write(
+          "lib/utils.ts",
+          `export function cn(...classes: (string | boolean | undefined | null)[]) {
+      return classes.filter(Boolean).join(" ");
+    }`
+        );
+      }
+    });
 
+    // 2️⃣ Initial state
+    const state = createState({ summary: "", files: {} });
 
-
-
-
+    // 3️⃣ Create code agent
     const codeAgent = createAgent({
       name: "code-agent",
       description: "An expert coding agent",
       system: PROMPT,
-      model: gemini({ model: "gemini-3-flash" }),
+      model: openai({ model: "gpt-4o" }),
       tools: [
-        // 1. Terminal
+        // Terminal tool
         createTool({
           name: "terminal",
-          description: "Use the terminal to run commands",
-          parameters: z.object({
-            command: z.string(),
-          }),
+          description: "Run commands in the sandbox",
+          parameters: z.object({ command: z.string() }),
           handler: async ({ command }, { step }) => {
             return await step?.run("terminal", async () => {
               const buffers = { stdout: "", stderr: "" };
-
               try {
                 const sandbox = await Sandbox.connect(sandboxId);
-
                 const result = await sandbox.commands.run(command, {
-                  onStdout: (data) => {
-                    buffers.stdout += data;
-                  },
-
-                  onStderr: (data) => {
-                    buffers.stderr += data;
-                  },
+                  timeoutMs: 60_000,
+                  onStdout: (data) => { buffers.stdout += data; },
+                  onStderr: (data) => { buffers.stderr += data; },
                 });
-
-                return result.stdout;
-              } catch (error) {
-                console.log(
-                  `Command failed: ${error} \n stdout: ${buffers.stdout}\n stderr: ${buffers.stderr}`
-                );
-
-                return `Command failed: ${error} \n stdout: ${buffers.stdout}\n stderr: ${buffers.stderr}`;
+                if (result.exitCode !== 0) {
+                  return `Command exited ${result.exitCode}\nstdout:${buffers.stdout}\nstderr:${buffers.stderr}`;
+                }
+                return buffers.stdout || result.stdout;
+              } catch (err) {
+                return `Command failed: ${err instanceof Error ? err.message : String(err)}\nstdout:${buffers.stdout}\nstderr:${buffers.stderr}`;
               }
             });
           },
         }),
 
-        // 2. createOrUpdateFiles
+        // Create/Update files
         createTool({
           name: "createOrUpdateFiles",
-          description: "Create or update files in the sanbox",
-          parameters: z.object({
-            files: z.array(
-              z.object({
-                path: z.string(),
-                content: z.string(),
-              })
-            ),
-          }),
-
-          handler: async ({ files }, { step, network }) => {
-            const newFiles = await step?.run(
-              "createOrUpdateFiles",
-              async () => {
-                try {
-                  const updatedFiles = network?.state?.data.files || {};
-
-                  const sanbox = await Sandbox.connect(sandboxId);
-
-                  for (const file of files) {
-                    await sanbox.files.write(file.path, file.content);
-                    updatedFiles[file.path] = file.content;
-                  }
-                  
-                  // rebuild and restart nextjs
-                  await sanbox.commands.run("bash /compile_page.sh");
-
-                  return updatedFiles;
-                } catch (error) {
-                  return "Error" + error;
+          description: "Write files to sandbox",
+          parameters: z.object({ files: z.array(z.object({ path: z.string(), content: z.string() })) }),
+          handler: async ({ files }, { step, network }) =>
+            await step?.run("createOrUpdateFiles", async () => {
+              const updatedFiles = network?.state?.data?.files || {};
+              try {
+                const sandbox = await Sandbox.connect(sandboxId);
+                for (const file of files) {
+                  await sandbox.files.write(file.path, file.content);
+                  updatedFiles[file.path] = file.content;
                 }
+                if (network?.state?.data) network.state.data.files = updatedFiles;
+                return updatedFiles;
+              } catch (err) {
+                return `Error: ${err instanceof Error ? err.message : String(err)}`;
               }
-            );
-
-            if (typeof newFiles === "object") {
-              network.state.data.files = newFiles;
-            }
-          },
+            }),
         }),
-        // 3. readFiles
+
+        // Read files
         createTool({
           name: "readFiles",
-          description: "Read files in the sandbox",
-
-          parameters: z.object({
-            files: z.array(z.string()),
-          }),
-          handler: async ({ files }, { step }) => {
-            return await step?.run("readFiles", async () => {
+          description: "Read files from sandbox",
+          parameters: z.object({ files: z.array(z.string()) }),
+          handler: async ({ files }, { step }) =>
+            await step?.run("readFiles", async () => {
               try {
-                const sanbox = await Sandbox.connect(sandboxId);
-
+                const sandbox = await Sandbox.connect(sandboxId);
                 const contents = [];
-
                 for (const file of files) {
-                  const content = await sanbox.files.read(file);
-                  contents.push({ path: file, content });
+                  try {
+                    const content = await sandbox.files.read(file);
+                    contents.push({ path: file, content });
+                  } catch {
+                    contents.push({ path: file, content: "" });
+                  }
                 }
                 return JSON.stringify(contents);
-              } catch (error) {
-                return "Error" + error;
+              } catch (err) {
+                return `Error: ${err instanceof Error ? err.message : String(err)}`;
               }
-            });
-          },
+            }),
         }),
       ],
 
       lifecycle: {
         onResponse: async ({ result, network }) => {
-          const lastAssistantMessageText =
-            lastAssistantTextMessageContent(result);
-
-          if (lastAssistantMessageText && network) {
-            if (lastAssistantMessageText.includes("<task_summary>")) {
-              network.state.data.summary = lastAssistantMessageText;
-            }
+          const lastText = lastAssistantTextMessageContent(result);
+          if (lastText && network?.state?.data && lastText.includes("<task_summary>")) {
+            network.state.data.summary = lastText;
           }
-
           return result;
         },
       },
     });
 
+    // 4️⃣ Network
     const network = createNetwork({
       name: "coding-agent-network",
       agents: [codeAgent],
-      maxIter: 3,
-
-      router: async ({ network }) => {
-        const summary = network.state.data.summary;
-
-        if (summary) {
-          return;
-        }
-
-        return codeAgent;
-      },
+      maxIter: 2,
+      router: async ({ network }) => network?.state?.data?.summary ? undefined : codeAgent,
     });
 
-    const result = await network.run(event.data.value);
+    // 5️⃣ Run network
+    const result = await network.run(event.data.value, { state });
 
-    // const fragmentTitleGenerator = createAgent({
-    //   name:"fragment-title-generator",
-    //   description:"Generate a title for the fragment",
-    //   system:FRAGMENT_TITLE_PROMPT,
-    //   model:gemini({model:"gemini-2.5-flash"})
-    // })
-
-    // const responseGenerator = createAgent({
-    //   name:"response-generator",
-    //   description:"Generate a response for the fragment",
-    //   system:RESPONSE_PROMPT,
-    //   model:gemini
-    //   ({ model: "gemini-3.1-flash-lite" })
-    // })
-
-
-    // const {output:fragmentTitleOutput} = await fragmentTitleGenerator.run(result.state.data.summary)
-    // const {output:responseOutput} = await responseGenerator.run(
-    //   result.state.data.summary
-    // )
-
-    // const generateFragmentTitle = ()=>{
-    //   if(fragmentTitleOutput[0].type !=="text"){
-    //     return "Untitled"
-    //   }
-
-    //   if(Array.isArray(fragmentTitleOutput[0].content)){
-    //         return fragmentTitleOutput[0].content.map((c) => c).join("");
-    //   }
-    //   else{
-    //     return fragmentTitleOutput[0].content
-    //   }
-    // }
-
-    // const generateResponse = ()=>{
-    //    if (responseOutput[0].type !== "text") {
-    //     return "Here you go";
-    //   }
-
-    //   if (Array.isArray(responseOutput[0].content)) {
-    //     return responseOutput[0].content.map((c) => c).join("");
-    //   } else {
-    //     return responseOutput[0].content;
-    //   }
-    // }
-
-    // const isError =
-    //   !result.state.data.summary ||
-    //   Object.keys(result.state.data.files || {}).length === 0;
-
+    // 6️⃣ Sandbox URL (prebuilt sandbox dev server)
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await Sandbox.connect(sandboxId);
-      const host = sandbox.getHost(3000);
-
-      return `http://${host}`;
+      return `http://${sandbox.getHost(3000)}`; // Port 3000 should now reliably work
     });
-
-
-
-   
 
     return {
       url: sandboxUrl,
       title: "Untitled",
-      files: result.state.data.files,
-      summary: result.state.data.summary,
+      files: result?.state?.data?.files,
+      summary: result?.state?.data?.summary,
     };
   }
 );

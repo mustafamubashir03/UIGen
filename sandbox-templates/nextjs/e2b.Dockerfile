@@ -1,28 +1,27 @@
-FROM node:22-slim
+# You can use most Debian-based base images
+FROM node:21-slim
 
 # Install curl
-RUN apt-get update && \
-    apt-get install -y curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /home/user
-
-# Copy compile script
 COPY compile_page.sh /compile_page.sh
 RUN chmod +x /compile_page.sh
 
-# Create Next.js app
-RUN npx --yes create-next-app@16.1.6 . --yes
+# Install dependencies and customize sandbox
+WORKDIR /home/user/nextjs-app
 
-# Initialize shadcn
+# Create a new Next.js app
+RUN npx --yes create-next-app@15.5.4 . --yes
+
+# Initialize shadcn UI
 RUN npx --yes shadcn@2.6.3 init --yes -b neutral --force
-
-# Add all shadcn components
 RUN npx --yes shadcn@2.6.3 add --all --yes
 
-# Install dependencies for cn()
-RUN npm install clsx tailwind-merge tw-animate-css
+# Create the missing utils file before moving the app
+RUN mkdir -p /home/user/lib \
+    && echo "export function cn(...classes: (string | boolean | undefined | null)[]) { return classes.filter(Boolean).join(' ') }" > /home/user/lib/utils.ts
 
-# Create missing utils.ts
-RUN mkdir -p lib && echo "import { clsx, type ClassValue } from 'clsx'; import { twMerge } from 'tailwind-merge'; export function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }" > lib/utils.ts
+# Move the Next.js app to the home directory and remove the nextjs-app directory
+RUN mv /home/user/nextjs-app/* /home/user/ && rm -rf /home/user/nextjs-app
+
+WORKDIR /home/user
