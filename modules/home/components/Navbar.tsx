@@ -15,10 +15,10 @@ const Navbar = () => {
         <SignedOut>
             <div className="flex gap-2">
                 <SignInButton>
-                    <Button variant={"outline"} size={"sm"}>Sign In</Button>
+                    <Button className="cursor-pointer" variant={"secondary"} size={"sm"}>Sign In</Button>
                 </SignInButton>
                 <SignUpButton>
-                    <Button variant={"outline"} size={"sm"}>Sign Up</Button>
+                    <Button className="cursor-pointer" variant={"secondary"} size={"sm"}>Sign Up</Button>
                 </SignUpButton>
             </div>
         </SignedOut>

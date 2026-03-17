@@ -1,20 +1,12 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { inngest } from "@/inngest/client"
 import ProjectForm from "@/modules/home/components/ProjectForm"
 import UIGenLogo from "@/modules/home/components/UIGenLogo"
-import { toast } from "sonner"
+
 
 
 const page = () => {
-  const onInvoke = async()=>{
-    await inngest.send({
-      name:"agent/hello.world",
-    }
-  )
-  toast.success("Done")
-  }
+
   return (
     <div className="flex items-center justify-between w-full px-4 py-8">
       <div className="max-w-5xl  mt-10 w-full mx-auto">
@@ -28,7 +20,6 @@ const page = () => {
           <div className="max-w-5xl w-full mt-10">
               <ProjectForm/>
           </div>
-          <Button onClick={onInvoke}>Invoke AI Agent</Button>
         </section>
 
       </div>

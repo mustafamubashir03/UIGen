@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
+import { QueryProvider } from '@/modules/home/components/QueryProvider'
 
 
 const jakarta = Plus_Jakarta_Sans({
@@ -30,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body className={`${jakarta.variable} ${geistMono.variable} antialiased`}>
           <ThemeProvider
             attribute="class"
@@ -38,8 +39,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+          <QueryProvider>
+          {children}
           <Toaster />
-            {children}
+          </QueryProvider>
           </ThemeProvider>
         </body>
       </html>

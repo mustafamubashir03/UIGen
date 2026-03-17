@@ -1,17 +1,19 @@
 "use client"
 import { useForm } from "react-hook-form"
 import TextareaAutosize from "react-textarea-autosize"
-import { ArrowUpIcon, Loader2Icon } from "lucide-react"
+import { ArrowUpIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useState } from "react"
 import z from "zod"
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
 import { trendingUIProjects } from "@/constants/ui-projects"
 import { cn } from "@/lib/utils"
 import { Kbd } from "@/components/ui/kbd"
+import { useCreateProject } from "@/modules/projects/hooks/project"
+import { Spinner } from "@/components/ui/spinner"
 
 const formSchema = z.object({
     content:z.string().min(1, "Project description is required").max(1000,"Description is too long")
@@ -21,23 +23,29 @@ const formSchema = z.object({
 const ProjectForm = () => {
     const [isFocused,setIsFocused] = useState(false)
     const router = useRouter()
+    const {mutateAsync: createProjectMutation, isPending} = useCreateProject()
     const form = useForm({
         resolver:zodResolver(formSchema),
         defaultValues:{
             content:""
-        }
+        },
+        mode:"onChange"
     })
     const handleTemplate = (prompt:string)=>{
         form.setValue("content",prompt)
     }
-    const onSubmit = async(values:any)=>{
+    const onSubmit = async(values:{content:string})=>{
         try{
-            console.log(values)
-
+            const res = await createProjectMutation(values.content)
+            router.push(`/projects/${res.id}`)
+            toast.success("Project created successfully")
+            form.reset()
         }catch(err){
             console.log(err)
+            toast.error("Failed to create project")
         }
     }
+    const isButtonDisabled = isPending
   return (
 <div className="space-y-8 w-full">
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -135,8 +143,8 @@ const ProjectForm = () => {
   </Kbd>
   <span>to submit</span>
 </div>
-      <Button className={cn("size-8 rounded-full")} type={"submit"}>
-        <ArrowUpIcon size={4}/>
+      <Button className={cn("size-8 cursor-pointer rounded-full")} disabled={isButtonDisabled} type={"submit"}>
+        {isPending ? (<Spinner/>): (<ArrowUpIcon className="size-4"/>)}
       </Button>
     </div>
   </form>

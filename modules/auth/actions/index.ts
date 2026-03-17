@@ -64,6 +64,7 @@ export const getCurrentUser = async()=>{
                 clerkId: id
             },
             select:{
+                id:true,
                 email:true,
                 image:true,
                 name:true,
