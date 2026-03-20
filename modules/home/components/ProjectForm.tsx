@@ -98,7 +98,7 @@ const ProjectForm = () => {
 
   <div className="relative flex justify-center text-sm">
     <span className="bg-background px-4 text-muted-foreground font-medium tracking-wide">
-      or describe your own idea
+      OR DESCRIBE YOUR OWN IDEA
     </span>
   </div>
 </div>

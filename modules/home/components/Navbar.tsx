@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 
 const Navbar = () => {
   return (
-    <nav className="p-4 bg-transparent fixed top-0 left-0 right-0 z-50 transition-all duration-200 border-b border-transparent">
+    <nav className="p-4 bg-background/80 backdrop-blur-xl supports-backdrop-filter:bg-background/60 fixed top-0 left-0 right-0 z-50 transition-all duration-200 border-b border-transparent">
         <div className="max-w-5xl mx-auto w-full flex justify-between items-center">
         <Link href="/" className="flex items-center">
             <UIGenLogo className="h-6 w-auto" />
