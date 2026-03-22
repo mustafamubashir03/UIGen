@@ -4,8 +4,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@clerk/nextjs"
 import ProjectHeader from "./ProjectHeader"
+import { useState } from "react"
+import MessageContainer from "./MessageContainer"
+import { JsonValue } from "@prisma/client/runtime/client"
+
+
+export type Fragment = {
+    id: string
+    messageId: string
+    sandboxUrl: string
+    title: string
+    files: JsonValue
+    createdAt: Date
+    updatedAt: Date
+  }
 
 const ProjectView = ({projectId}:{projectId:string}) => {
+    const [activeFragment,setActiveFragment] = useState<Fragment | null>(null)
 
   
     return (
@@ -17,6 +32,9 @@ const ProjectView = ({projectId}:{projectId:string}) => {
             className="flex flex-col"
           >
             <ProjectHeader projectId={projectId} />
+            <MessageContainer projectId={projectId}
+            activeFragment={activeFragment}
+            setActiveFragment={setActiveFragment}/>
   
 
           </ResizablePanel>

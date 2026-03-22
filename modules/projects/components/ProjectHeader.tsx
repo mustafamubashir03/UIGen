@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
   ChevronDownIcon,
@@ -41,11 +40,11 @@ const ProjectHeader = ({ projectId }:{projectId:string}) => {
       <Button
         variant="ghost"
         size="sm"
-        className="flex items-center gap-2 px-2 hover:bg-accent/50 transition-colors rounded-lg"
+        className="flex cursor-pointer items-center gap-2 px-2 hover:bg-accent/50 transition-colors rounded-lg"
       >
-        <UIGenLogo />
+        <UIGenLogo className='size-12'/>
 
-        <span className="text-sm font-medium truncate max-w-[160px]">
+        <span className="text-sm  ml-2 font-medium truncate max-w-[160px]">
           {isPending ? <Spinner /> : project?.name || "Untitled Project"}
         </span>
 
@@ -58,7 +57,7 @@ const ProjectHeader = ({ projectId }:{projectId:string}) => {
       align="start"
       className="w-56 backdrop-blur-xl bg-background/90 border border-border/50"
     >
-      {/* Dashboard */}
+
       <DropdownMenuItem asChild>
         <Link href={"/"} className="flex items-center gap-2 cursor-pointer">
           <ChevronLeftIcon className="size-4 text-muted-foreground" />
@@ -68,7 +67,7 @@ const ProjectHeader = ({ projectId }:{projectId:string}) => {
 
       <DropdownMenuSeparator />
 
-      {/* Appearance */}
+
       <DropdownMenuSub>
         <DropdownMenuSubTrigger className="gap-2">
           <SunMoonIcon className="size-4 text-indigo-500 dark:text-indigo-400" />
@@ -82,10 +81,10 @@ const ProjectHeader = ({ projectId }:{projectId:string}) => {
           >
             <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
 
-              {/* LIGHT */}
+
               <DropdownMenuRadioItem
                 value="light"
-                className="flex items-center gap-2 px-8"
+                className="flex cursor-pointer items-center gap-2 px-8"
               >
                 <SunIcon
                   className={`size-4 transition ${
@@ -97,10 +96,9 @@ const ProjectHeader = ({ projectId }:{projectId:string}) => {
                 Light
               </DropdownMenuRadioItem>
 
-              {/* DARK */}
               <DropdownMenuRadioItem
                 value="dark"
-                className="flex items-center gap-2 px-8"
+                className="flex cursor-pointer items-center gap-2 px-8"
               >
                 <MoonIcon
                   className={`size-4 transition ${
@@ -112,10 +110,10 @@ const ProjectHeader = ({ projectId }:{projectId:string}) => {
                 Dark
               </DropdownMenuRadioItem>
 
-              {/* SYSTEM */}
+
               <DropdownMenuRadioItem
                 value="system"
-                className="flex items-center gap-2 px-8"
+                className="flex cursor-pointer items-center gap-2 px-8"
               >
                 <ComputerIcon
                   className={`size-4 transition ${
