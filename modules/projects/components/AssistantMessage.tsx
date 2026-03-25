@@ -4,6 +4,7 @@ import UIGenLogo from "@/modules/home/components/UIGenLogo"
 import { FragmentCard } from "./FragmentCard"
 import { Message } from "./MessageCard"
 import { format } from "date-fns"
+import AIResponse from "./AIResponse"
 
 export const AssistantMessage = ({content,role,type,isActiveFragment,onFragmentClick,fragments,createdAt}:Message)=>{
     return (
@@ -13,7 +14,7 @@ export const AssistantMessage = ({content,role,type,isActiveFragment,onFragmentC
                 <span className='text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100'>{format(new Date(createdAt), "HH:mm 'on' MMM dd, yyyy")}</span>
             </div>
             <div className=' flex flex-col gap-y-4'>
-                <span>{content}</span>
+                <AIResponse content={content}/>
                 {fragments && type === MessageType.RESULT && (
                     <FragmentCard
                     fragments={fragments}
