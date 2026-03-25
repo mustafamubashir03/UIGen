@@ -46,29 +46,12 @@ export const codeAgentFunction = inngest.createFunction(
       return sandbox.sandboxId;
     });
 
-    // 2️⃣ Load previous messages and create state (typesafe preserved)
-    const previousMessages = await step.run("get-previous-messages", async () => {
-      const messages = await prisma.message.findMany({
-        where: { projectId: event.data.projectId },
-        orderBy: { createdAt: "asc" },
-      });
 
-      return messages.map((msg) => ({
-        type: "text" as const,
-        role: msg.role === "ASSISTANT" ? "assistant" : "user",
-        content: msg.content,
-      }));
+
+    const state = createState<AgentState>({
+      summary: "",
+      files: {},
     });
-
-    const state = createState<AgentState>(
-      {
-        summary: "",
-        files: {},
-      },
-      {
-        messages: previousMessages as Message[],
-      }
-    );
 
     // 3️⃣ Create code agent
     const codeAgent = createAgent({

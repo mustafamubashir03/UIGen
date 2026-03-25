@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
+import UIGenLogo from "@/modules/home/components/UIGenLogo"
 
 const STATES = [
     "Thinking...",
@@ -46,9 +47,7 @@ const MessageLoader = () => {
   return (
     <div className="w-full flex items-start gap-3 py-4 animate-fade-in">
 
-      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-        <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-      </div>
+    <UIGenLogo className='size-10'/>
 
 
       <div className="flex flex-col gap-2 w-full max-w-[80%]">

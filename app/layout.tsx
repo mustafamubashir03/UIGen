@@ -5,6 +5,7 @@ import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from 'sonner'
 import { QueryProvider } from '@/modules/home/components/QueryProvider'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 
 const jakarta = Plus_Jakarta_Sans({
@@ -33,16 +34,19 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${jakarta.variable} ${geistMono.variable} antialiased`}>
+
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
+          <TooltipProvider>
           <QueryProvider>
           {children}
           <Toaster />
           </QueryProvider>
+          </TooltipProvider>
           </ThemeProvider>
         </body>
       </html>
