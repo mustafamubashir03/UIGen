@@ -2,7 +2,11 @@
 
 <p align="center">
 
-<img width="1920" height="931" alt="Project-showcase" src="https://github.com/user-attachments/assets/b346ab91-bd21-48c6-932d-e3e357d2bebe" />
+
+
+
+https://github.com/user-attachments/assets/aa426ed4-2e8f-4128-a96f-9300f2870397
+
 
 
 </p>
