@@ -3,6 +3,7 @@ import Link from "next/link"
 import UIGenLogo from "./UIGenLogo"
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "./ThemeToggle"
 
 
 const Navbar = () => {
@@ -23,7 +24,10 @@ const Navbar = () => {
             </div>
         </SignedOut>
         <SignedIn>
+            <div className="flex gap-4 items-center justify-center">
+            <ThemeToggle/>
             <UserButton/>
+            </div>
         </SignedIn>
         </div>
     </nav>
