@@ -3,14 +3,14 @@
 <p align="center">
 
 
-
-
-https://github.com/user-attachments/assets/aa426ed4-2e8f-4128-a96f-9300f2870397
-
+https://github.com/user-attachments/assets/a2d4efe4-c079-4425-b219-df41c17b0de9
 
 
 </p>
 
+<p align="center">
+  https://github.com/user-attachments/assets/287c6ca5-54ef-4e43-ba12-b07c7140a45e
+</p>
 <p align="center">
   <b>UIGen</b> is a Next.js application that helps you generate modern, aesthetic UI by chatting with an AI agent.
   It integrates authentication (Clerk), persistence (Postgres + Prisma), and background workflows (Inngest + E2B sandbox) to generate and iterate on UI code.
