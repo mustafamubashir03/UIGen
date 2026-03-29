@@ -12,6 +12,7 @@ export const createProject = async(value:string)=>{
     if(!user || !user.currentUserFound){
         throw new Error("Unauthorized")
     }
+    
     const newProject = await prisma.project.create({
         data:{
             name: generateSlug(4, { format: "kebab" }),

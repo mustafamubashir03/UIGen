@@ -59,7 +59,7 @@ const ProjectView = ({projectId}:{projectId:string}) => {
             <div className="ml-auto flex items-center gap-x-2">
               <Button asChild size={"sm"} variant={"outline"}>
                 <Link href={"/pricing"}>
-                <CrownIcon className="size-4 text-yellow-300 mr-2"/>
+                <CrownIcon className="size-4 text-yellow-500 dark:text-yellow-200"/>
                 Upgrade
                 </Link>
               </Button>

@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 import { Kbd } from "@/components/ui/kbd"
 import { useCreateMessage } from "@/modules/messages/hooks"
 import { Spinner } from "@/components/ui/spinner"
+import { useStatus } from "@/modules/usage/hooks/usage"
+import Usage from "@/modules/usage/components/Usage"
 
 const formSchema = z.object({
     content:z.string().min(1, "Message description is required").max(1000,"Message is too long")
@@ -21,6 +23,8 @@ const formSchema = z.object({
 const MessageForm = ({projectId}:{projectId:string}) => {
     const [isFocused,setIsFocused] = useState(false)
     const {mutateAsync: createMessageMutation, isPending} = useCreateMessage({projectId})
+    const {data:usage} = useStatus()
+    const showUsage = !!usage;
     const form = useForm({
         resolver:zodResolver(formSchema),
         defaultValues:{
@@ -40,8 +44,13 @@ const MessageForm = ({projectId}:{projectId:string}) => {
     }
 
   return (
-<div className="space-y-8 w-full">
+<div className=" w-full">
 <Form {...form}>
+  {
+    showUsage && (
+      <Usage/>
+    )
+  }
   <form
     onSubmit={form.handleSubmit(onSubmit)}
     className={cn(

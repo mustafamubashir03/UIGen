@@ -22,7 +22,7 @@ export const useCreateProject = ()=>{
     return useMutation({
         mutationFn: (value:string)=>createProject(value),
         onSuccess:()=>{
-            queryClient.invalidateQueries({queryKey:["projects"]})
+            queryClient.invalidateQueries({queryKey:["projects","status"]})
         }
     })
 }

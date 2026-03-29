@@ -31,7 +31,7 @@ export const useCreateMessage = ({projectId}:{projectId:string})=>{
         mutationFn:({value}:{value:string})=>createMessage({projectId,value}),
         onSuccess:()=>{
             queryClient.invalidateQueries({queryKey:["messages",projectId ]})
+            queryClient.invalidateQueries({queryKey:["status"]})
         }
-
     })
 }
