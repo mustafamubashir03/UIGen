@@ -9,7 +9,11 @@ https://github.com/user-attachments/assets/a2d4efe4-c079-4425-b219-df41c17b0de9
 </p>
 
 <p align="center">
-  https://github.com/user-attachments/assets/287c6ca5-54ef-4e43-ba12-b07c7140a45e
+
+
+https://github.com/user-attachments/assets/098eceda-dbf5-48b3-b5c2-19a2f329c2d3
+
+
 </p>
 <p align="center">
   <b>UIGen</b> is a Next.js application that helps you generate modern, aesthetic UI by chatting with an AI agent.
