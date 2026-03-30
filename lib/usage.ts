@@ -31,19 +31,25 @@ export async function consumeCredits(){
 }
 
 
-export async function getUsageStatus(){
-    const {userId} = await auth()
-    if(!userId){
-        throw new Error("Unauthorized")
-    }
-    const usageTracker = await getUsageTracker()
-    try{
-        const result = await usageTracker.get(userId)
-        if(!result){
-            return null
-        }
-    }catch(error){
-        console.log(error)
-        return null
+export async function getUsageStatus() {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const usageTracker = await getUsageTracker();
+
+    try {
+        const result = await usageTracker.get(userId);
+
+        if (!result) return null;
+
+        return {
+            remainingPoints: result.remainingPoints,
+            consumedPoints: result.consumedPoints,
+            msBeforeNext: result.msBeforeNext,
+            isFirstRequest: result.isFirstInDuration,
+        };
+    } catch (error) {
+        console.log(error);
+        return null;
     }
 }

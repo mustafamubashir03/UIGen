@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db"
 import { MessageRole, MessageType } from "@/generated/prisma/enums"
 import { generateSlug } from "random-word-slugs";
 import { getCurrentUser } from "@/modules/auth/actions";
+import { consumeCredits } from "@/lib/usage";
+import { RateLimiterRes } from "rate-limiter-flexible";
 
 
 export const createProject = async(value:string)=>{
@@ -12,6 +14,24 @@ export const createProject = async(value:string)=>{
     if(!user || !user.currentUserFound){
         throw new Error("Unauthorized")
     }
+    try{
+        await consumeCredits()
+
+    }catch (error: unknown) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "remainingPoints" in error
+        ) {
+          const rlError = error as RateLimiterRes;
+      
+          if (rlError.remainingPoints === 0) {
+            throw new Error("TOO_MANY_REQUESTS: No credits left");
+          }
+        }
+      
+        throw new Error("BAD_REQUEST: Something went wrong");
+      }
     
     const newProject = await prisma.project.create({
         data:{

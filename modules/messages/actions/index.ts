@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db"
 import { inngest} from "@/inngest/client"
 import { getCurrentUser } from "@/modules/auth/actions"
 import { consumeCredits } from "@/lib/usage"
+import { RateLimiterRes } from "rate-limiter-flexible"
 
 export const createMessage = async({value,projectId}:{value:string, projectId:string})=>{
     const user = await getCurrentUser()
@@ -23,12 +24,20 @@ export const createMessage = async({value,projectId}:{value:string, projectId:st
     try{
         await consumeCredits()
 
-    }catch (error) {
-        if (error instanceof Error) {
-          throw new Error("BAD_REQUEST: Something went wrong")
-        } else {
-          throw new Error("TOO_MANY_REQUESTS: Too many requests")
+    }catch (error: unknown) {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "remainingPoints" in error
+        ) {
+          const rlError = error as RateLimiterRes;
+      
+          if (rlError.remainingPoints === 0) {
+            throw new Error("TOO_MANY_REQUESTS: No credits left");
+          }
         }
+      
+        throw new Error("BAD_REQUEST: Something went wrong");
       }
     const newMessage = await prisma.message.create({
         data:{

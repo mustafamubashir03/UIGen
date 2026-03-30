@@ -35,7 +35,6 @@ const MessageForm = ({projectId}:{projectId:string}) => {
     const onSubmit = async(values:{content:string})=>{
         try{
             await createMessageMutation({value:values.content})
-            toast.success("Message created successfully")
             form.reset()
         }catch(err){
             console.log(err)
