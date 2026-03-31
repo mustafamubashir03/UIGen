@@ -27,8 +27,11 @@ function getMessageContent(msg: Message | undefined): string {
 }
 
 export const codeAgentFunction = inngest.createFunction(
-  { id: "code-agent", retries: 2  },
-  { event: "code-agent/run" },
+  { 
+    id: "code-agent", 
+    retries: 2,
+    triggers: [{ event: "code-agent/run" }] 
+  },
   async ({ event, step }) => {
     // 1️⃣ Connect to sandbox
     const previousMessages = await step.run("get-previous-messages", async () => {
