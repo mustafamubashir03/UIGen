@@ -1,4 +1,4 @@
-# UIGen (UI Generator)
+# UIGen
 
 <p align="center">
 
