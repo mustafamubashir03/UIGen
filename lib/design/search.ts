@@ -5,7 +5,19 @@ import { rankDocuments, BM25Doc } from "./bm25";
 
 type CSVRow = Record<string, string>;
 const DATA_DIR = path.join(process.cwd(), "data");
+interface SearchResultRow extends Record<string, string | number> {
+  score: number;
+}
 
+// 2. Define the shape of the full search response
+interface SearchResponse {
+  domain: string;
+  query: string;
+  file: string;
+  count: number;
+  results: SearchResultRow[];
+  error?: string; // Optional error field
+}
 // ===== FIELD WEIGHTS (CRITICAL FOR QUALITY) =====
 const FIELD_WEIGHTS: Record<string, number> = {
   "Pattern Name": 3,
@@ -176,21 +188,27 @@ export function search(
     .filter((r) => r.score > 0)
     .slice(0, maxResults);
 
-  const results = ranked.map((r) => {
-    const row = docs[r.index].meta;
-    const out: Record<string, string> = {};
-
-    config.outputCols.forEach((col) => {
-      if (row[col] !== undefined) {
-        out[col] = row[col];
-      }
+    const results = ranked.map((r) => {
+      // Access the doc safely
+      const doc = docs[r.index];
+      if (!doc) return { score: r.score }; // Fallback if doc is missing
+  
+      const row = doc.meta;
+      const out: Record<string, string> = {};
+  
+      config.outputCols.forEach((col) => {
+        // row is now guaranteed to exist here
+        if (row && row[col] !== undefined) {
+          out[col] = row[col];
+        }
+      });
+  
+      return {
+        score: r.score,
+        ...out,
+      };
     });
-
-    return {
-      score: r.score,
-      ...out,
-    };
-  });
+  
 
   return {
     domain: detected,
@@ -202,7 +220,7 @@ export function search(
 }
 
 // ===== FORMAT =====
-export function formatOutput(result: any): string {
+export function formatOutput(result: SearchResponse): string {
   if (result.error) return `Error: ${result.error}`;
 
   const lines: string[] = [];
@@ -210,7 +228,7 @@ export function formatOutput(result: any): string {
   lines.push(`Domain: ${result.domain} | Query: ${result.query}`);
   lines.push(`Source: ${result.file} | Found: ${result.count}\n`);
 
-  result.results.forEach((row: any, i: number) => {
+  result.results.forEach((row: SearchResultRow, i: number) => {
     lines.push(`### Result ${i + 1} (Score: ${row.score.toFixed(2)})`);
     Object.entries(row).forEach(([k, v]) => {
       if (k === "score") return;

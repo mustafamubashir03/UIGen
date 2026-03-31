@@ -18,7 +18,6 @@ type AgentState = {
 // Safe helper for extracting text content
 function getMessageContent(msg: Message | undefined): string {
   if (!msg) return "";
-  // Type narrowing: only access 'content' if it exists
   if ("content" in msg) {
     if (Array.isArray(msg.content)) return msg.content.join("");
     if (typeof msg.content === "string") return msg.content;
