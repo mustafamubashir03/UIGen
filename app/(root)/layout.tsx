@@ -5,7 +5,7 @@ import Navbar from "@/modules/home/components/Navbar";
 const Layout = async ({ children }: { children: React.ReactNode }) => {
     await onBoardUser()
     return (
-      <main className="relative min-h-screen flex flex-col overflow-x-hidden">
+      <main className="relative min-h-screen flex flex-col overflow-x-hidden" suppressHydrationWarning>
 
         <Navbar/>
         {/* Background Pattern */}

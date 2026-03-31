@@ -14,7 +14,7 @@
 
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(20, 184, 166, 0.35); 
+  background: #14b8a6; 
   border-radius: 999px;
   min-height: 40px;        
   transition: all 0.25s ease;

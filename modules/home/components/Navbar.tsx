@@ -15,6 +15,7 @@ const Navbar = () => {
         </Link>
         <SignedOut>
             <div className="flex gap-2">
+                <ThemeToggle/>
                 <SignInButton>
                     <Button className="cursor-pointer" variant={"secondary"} size={"sm"}>Sign In</Button>
                 </SignInButton>

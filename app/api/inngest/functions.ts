@@ -27,32 +27,28 @@ function getMessageContent(msg: Message | undefined): string {
 }
 
 export const codeAgentFunction = inngest.createFunction(
-  { id: "code-agent" },
+  { id: "code-agent", retries: 2  },
   { event: "code-agent/run" },
   async ({ event, step }) => {
     // 1️⃣ Connect to sandbox
-    let state: ReturnType<typeof createState<AgentState>>;
-    const previousMessages = await step.run("get-previous-messages", async()=>{
+    const previousMessages = await step.run("get-previous-messages", async () => {
       const formattedMessages: Message[] = [];
       const messages = await prisma.message.findMany({
-        where:{
-          projectId:event.data.projectId
-        },
-        orderBy:{
-          createdAt:"desc"
-        }
-      })
-      for (const message of messages){
-        formattedMessages.push({
-          type:"text",
-          role:message.role === "ASSISTANT" ? "assistant" : "user",
-          content:message.content
-        })
-      }
-      return formattedMessages
-    })
+        where: { projectId: event.data.projectId },
+        orderBy: { createdAt: "desc" },
+      });
     
-    state = createState<AgentState>({
+      for (const message of messages) {
+        formattedMessages.push({
+          type: "text",
+          role: message.role === "ASSISTANT" ? "assistant" : "user",
+          content: message.content,
+        });
+      }
+      return formattedMessages;
+    });
+    
+    const state = createState<AgentState>({
       summary: "",
       files: {},
     }, {
