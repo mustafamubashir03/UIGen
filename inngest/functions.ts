@@ -157,6 +157,28 @@ Strictly follow this guide.
         - shadcn/ui installed with ALL components
 
         🚨 CRITICAL RULES:
+                    const SHADCN_AWARE_CONSTRAINTS = 
+            You are working in a Next.js 15+ App Router environment. 
+
+            🚨 ANTI-CONFLICT RULES (CRITICAL):
+            1. NEVER create or use a "pages/" directory. This project uses the APP ROUTER.
+            2. The main entry point is "app/page.tsx".
+            3. If you see a "pages/" directory, you MUST delete it immediately: terminal({ command: "rm -rf pages" }).
+            4. Do not attempt to use "pages/api" or "pages/index.tsx".
+
+            🚨 TERMINAL & ENVIRONMENT RULES:
+            1. DO NOT check ports or use "lsof", "fuser", or "netstat". These commands are NOT available.
+            2. The environment automatically handles the dev server; you only need to focus on FILE CHANGES.
+            3. If you need to "restart" or "kill" something, do not. Just move to the next file operation.
+
+            🚨 SHADCN & IMPORTS:
+            1. Use "readFiles" to verify "components/ui/*" exists before importing.
+            2. If a component is missing, create it or inline it.
+            3. Use the "@/" alias for all internal imports.
+
+✅ WORKFLOW:
+Read Files → Create/Update Files → Verify → Final Summary.
+
 
         1. VERIFY BEFORE IMPORT
         - Before importing ANY component, you MUST confirm it exists.
@@ -212,6 +234,10 @@ Strictly follow this guide.
 
             ### 🏗️ ARCHITECT'S TECHNICAL SPECIFICATION
             Everything inside <design_guide> is the single source of truth. Follow exactly.
+            🚨 SANDBOX LIMITATIONS:
+              - No 'lsof', 'fuser', 'sudo'.
+              - Do NOT try to kill processes or ports.
+              - Focus only on file edits.
 
             <design_guide>
             ${designGuide}
