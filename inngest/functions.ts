@@ -90,24 +90,37 @@ export const codeAgentFunction = inngest.createFunction(
     // 3️⃣ Create designAgent → enhance JSON and produce designGuide
     const designAgent = createAgent({
       name: "design-agent",
-      description: "Enhances design system JSON and outputs a full design guide prompt for code agent",
+      description: "Generates a complete high-fidelity design guide and sample code snippets for a Next.js + Tailwind project",
       system: `
-You are a senior UI/UX architect. 
-You receive a base design system JSON and must:
-1️⃣ Enhance the JSON: improve colors, spacing, typography, sections, components, interactions.
-2️⃣ Convert the enhanced JSON into a single high-quality textual DESIGN_GUIDE prompt.
-- Include UI layout guidance, section/component hierarchy, UX rules, Tailwind/Next.js constraints.
-- Include small illustrative code snippets only if needed.
-- Whenever a visual illustration, hero section, banner, or background is mentioned, suggest a relevant Unsplash image URL, with alt text and short description of why it fits the design context.
-- This prompt will be the ONLY input for the code agent.
-
-Input JSON:
-${JSON.stringify(baseDesignSystem, null, 2)}
-`,
-      model: openai({ model: "gpt-4o-mini" }),
+    You are a senior UI/UX architect and code designer.
+    You will generate a **complete design guide** for a web project, producing:
+    
+    1️⃣ **High-Fidelity Design Guide**
+    - Include typography, color palettes, spacing, shadows, and component styles.
+    - Include section layouts, hierarchy, hero sections, banners, cards, forms, and navigation.
+    - Suggest UX rules and best practices for interactions, responsiveness, and accessibility.
+    
+    2️⃣ **Illustrative Code Snippets**
+    - Only include code snippets **if it clarifies a layout or component usage**.
+    - Use Tailwind CSS for styles.
+    - If using a component library like shadcn/ui, only suggest components that exist (Button, Card, Input, etc.).
+    - Include React + Next.js examples where necessary.
+    - For visual illustrations, hero images, or banners, suggest a relevant Unsplash URL, with alt text and a short explanation of why it fits.
+    
+    3️⃣ **Constraints**
+    - Do not depend on any external base design system.
+    - Produce consistent output across runs for the same instructions.
+    - The output must be **deterministic and reusable** by a coding agent.
+    - Output a single coherent textual guide that can be fed directly into a code-generating agent.
+    
+    Output ONLY:
+    - The complete design guide text.
+    - Include small code snippets **inline only if needed**, otherwise keep textual instructions.
+    `,
+      model: openai({ model: "gpt-4o" }),
     });
 
-    const { output: designOutput } = await designAgent.run("Enhance and convert design system");
+    const { output: designOutput } = await designAgent.run(`Create a complete high-fidelity design guide based on this user request: ${event.data.value}`);
     console.log("[DEBUG] DESIGN AGENT OUTPUT:", JSON.stringify(designOutput, null, 2));
 
     // Ensure codeAgent uses designAgent output
@@ -170,18 +183,23 @@ ${JSON.stringify(baseDesignSystem, null, 2)}
         ✅ ALWAYS:
         - Read → Build → Verify → Fix → Repeat
         `;
-
+        const codeSystemPrompt = `
+        ${SHADCN_AWARE_CONSTRAINTS}
+        
+        ${PROMPT}
+        
+        STRICT VISUAL DIRECTION:
+        You MUST follow this design guide exactly. Do not use your own default styles or examples.
+        <design_guide>
+        ${designGuide}
+        </design_guide>
+        `;
     // 4️⃣ Create codeAgent using the enriched designGuide
     const codeAgent = createAgent({
       name: "code-agent",
       description: "An expert coding agent",
-      system:
-  (designGuide || "Fallback: sensible defaults") +
-  "\n\n" +
-  PROMPT +
-  "\n\n" +
-  SHADCN_AWARE_CONSTRAINTS,
-      model: openai({ model: "gpt-4o" }),
+      system:codeSystemPrompt,
+      model: openai({ model: "gpt-4o-mini" }),
       tools: [
         createTool({
           name: "terminal",
