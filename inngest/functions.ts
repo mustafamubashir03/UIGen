@@ -58,13 +58,27 @@ export const codeAgentFunction = inngest.createFunction(
     });
     const sandboxId = await step.run("get-sandbox-id", async () => {
       const sandbox = await Sandbox.create(E2B_SANDBOX_TEMPLATE);
-
-      try { await sandbox.files.read("app/page.tsx"); } 
-      catch { await sandbox.files.write("app/page.tsx", `"use client";\nexport default function Home(){ return <div>Loading...</div>; }`); }
-
-      try { await sandbox.files.read("lib/utils.ts"); } 
-      catch { await sandbox.files.write("lib/utils.ts", `export function cn(...classes: (string | boolean | undefined | null)[]) { return classes.filter(Boolean).join(" "); }`); }
-
+    
+      // 1️⃣ Fetch the latest RESULT message with files
+      const lastResult = await prisma.message.findFirst({
+        where: { projectId: event.data.projectId, type: MessageType.RESULT },
+        orderBy: { createdAt: "desc" },
+        include: { fragments: true },
+      });
+    
+      // 2️⃣ If previous files exist, write them into the new sandbox
+      if (lastResult?.fragments?.files && typeof lastResult.fragments.files === "object") {
+        const files = lastResult.fragments.files as Record<string, string>;
+        for (const [path, content] of Object.entries(files)) {
+          await sandbox.files.write(path, content);
+        }
+        console.log(`[DEBUG] Re-hydrated sandbox with ${Object.keys(files).length} files.`);
+      } else {
+        // 3️⃣ Default initial files if brand-new project
+        await sandbox.files.write("app/page.tsx", `"use client";\nexport default function Home(){ return <div>Loading...</div>; }`);
+        await sandbox.files.write("lib/utils.ts", `export function cn(...classes: (string | boolean | undefined | null)[]) { return classes.filter(Boolean).join(" "); }`);
+      }
+    
       return sandbox.sandboxId;
     });
 
@@ -248,7 +262,13 @@ ${JSON.stringify(baseDesignSystem, null, 2)}
       name: "coding-agent-network",
       agents: [codeAgent],
       maxIter: 10,
-      router: async ({ network }) => network?.state?.data?.summary ? undefined : codeAgent,
+      router: async ({ network }) => {
+        // Only stop if we have a summary AND at least one file exists
+        if (network?.state?.data?.summary && Object.keys(network?.state?.data?.files || {}).length > 0) {
+          return undefined;
+        }
+        return codeAgent;
+      },
     });
 
     const result = await network.run(event.data.value, { state });
