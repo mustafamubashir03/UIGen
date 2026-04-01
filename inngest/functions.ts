@@ -152,107 +152,49 @@ Strictly follow this guide.
     if (!designGuide) console.warn("[WARN] DesignAgent did not return content! CodeAgent will fallback.");
     console.log("[DEBUG] DESIGN GUIDE CONTENT:", designGuide);
     const SHADCN_AWARE_CONSTRAINTS = `
-        You are working inside a Next.js sandbox that ALREADY has:
-        - Tailwind CSS installed
-        - shadcn/ui installed with ALL components
+      You are working in a Next.js 15+ App Router environment. 
 
-        🚨 CRITICAL RULES:
-                    const SHADCN_AWARE_CONSTRAINTS = 
-            You are working in a Next.js 15+ App Router environment. 
+      🚨 ANTI-CONFLICT RULES (CRITICAL):
+      1. NEVER create or use a "pages/" directory. This project uses the APP ROUTER exclusively.
+      2. The main entry point is "app/page.tsx". All new routes must stay in "app/".
+      3. If you see a "pages/" directory, you MUST delete it immediately: terminal({ command: "rm -rf pages" }).
+      4. Do not attempt to use "pages/api" or "pages/index.tsx".
 
-            🚨 ANTI-CONFLICT RULES (CRITICAL):
-            1. NEVER create or use a "pages/" directory. This project uses the APP ROUTER.
-            2. The main entry point is "app/page.tsx".
-            3. If you see a "pages/" directory, you MUST delete it immediately: terminal({ command: "rm -rf pages" }).
-            4. Do not attempt to use "pages/api" or "pages/index.tsx".
+      🚨 TERMINAL & ENVIRONMENT RULES:
+      1. DO NOT check ports or use "lsof", "fuser", or "netstat". These commands are NOT available.
+      2. The environment automatically handles the dev server; focus ONLY on file edits.
+      3. If you need to "kill" a process, skip it and continue with file generation.
 
-            🚨 TERMINAL & ENVIRONMENT RULES:
-            1. DO NOT check ports or use "lsof", "fuser", or "netstat". These commands are NOT available.
-            2. The environment automatically handles the dev server; you only need to focus on FILE CHANGES.
-            3. If you need to "restart" or "kill" something, do not. Just move to the next file operation.
+      🚨 SHADCN & IMPORTS:
+      1. Before importing ANY component, you MUST use "readFiles" to verify it exists in "components/ui/*".
+      2. If a component is missing, create it using "createOrUpdateFiles" or inline it.
+      3. Use the "@/" alias for all internal imports (e.g., "@/components/ui/button").
+      4. ALWAYS use "use client" at the top of files using hooks or interactivity.
 
-            🚨 SHADCN & IMPORTS:
-            1. Use "readFiles" to verify "components/ui/*" exists before importing.
-            2. If a component is missing, create it or inline it.
-            3. Use the "@/" alias for all internal imports.
+      ✅ WORKFLOW:
+      Read Project Files → Create/Update Files in "app/" → Verify Imports → Final Task Summary.
+      `;
 
-✅ WORKFLOW:
-Read Files → Create/Update Files → Verify → Final Summary.
+          const codeSystemPrompt = `
+      ${SHADCN_AWARE_CONSTRAINTS}
 
+      ### 🏗️ ARCHITECT'S TECHNICAL SPECIFICATION (Source of Truth)
+      Everything inside <design_guide> is your master instruction. Follow the HSL tokens and layout exactly.
 
-        1. VERIFY BEFORE IMPORT
-        - Before importing ANY component, you MUST confirm it exists.
-        - Use readFiles to inspect:
-          - components/ui/*
-          - lib/utils.ts
+      <design_guide>
+      ${designGuide}
+      </design_guide>
 
-        2. SHADCN USAGE RULE
-        - You MAY use shadcn components like:
-          - Button, Card, Input, etc.
-        - BUT ONLY if they exist in /components/ui/
+      ### 👤 USER REQUEST
+      ${event.data.value}
 
-        - NEVER assume uncommon components exist:
-          ❌ Video
-          ❌ Player
-          ❌ MusicCard
-
-        3. IF COMPONENT DOES NOT EXIST:
-        - You MUST create it using createOrUpdateFiles
-        - OR inline it inside the page
-
-        4. IMPORT RULE (STRICT)
-        - Every import MUST resolve to a real file
-        - If unsure → DO NOT import → inline instead
-
-        5. ITERATIVE DEVELOPMENT (MANDATORY)
-        - Step 1: readFiles to inspect project
-        - Step 2: create/update page.tsx
-        - Step 3: create missing components
-        - Step 4: fix imports
-        - Step 5: repeat until complete
-
-        6. COMPLETION CHECK
-        Before finishing:
-        - All imports valid
-        - No missing files
-        - App runs without errors
-
-        7. FALLBACK STRATEGY
-        If anything is unclear:
-        - Use simple Tailwind divs instead of importing
-
-        🚫 NEVER:
-        - Import non-existent components (like Video)
-        - Assume a component exists without checking
-        - Stop after one file
-
-        ✅ ALWAYS:
-        - Read → Build → Verify → Fix → Repeat
-        `;
-        const codeSystemPrompt = `
-            ${SHADCN_AWARE_CONSTRAINTS}
-
-            ### 🏗️ ARCHITECT'S TECHNICAL SPECIFICATION
-            Everything inside <design_guide> is the single source of truth. Follow exactly.
-            🚨 SANDBOX LIMITATIONS:
-              - No 'lsof', 'fuser', 'sudo'.
-              - Do NOT try to kill processes or ports.
-              - Focus only on file edits.
-
-            <design_guide>
-            ${designGuide}
-            </design_guide>
-
-            ### 👤 USER REQUEST
-            ${event.data.value}
-
-            ### 🛠️ CODER EXECUTION PLAN
-            - Phase 0: Detect intent (fix vs new build)
-            - Phase 1: Apply HSL Tokens and Typography
-            - Phase 2: Build Atoms and Sections (Shadcn verified)
-            - Phase 3: Assemble Page.tsx
-            - Phase 4: Iteratively verify imports, skeletons, and run app
-            `;
+      ### 🛠️ EXECUTION PLAN
+      - Phase 0: If 'pages/' exists, delete it.
+      - Phase 1: Apply HSL Tokens to globals.css and check font imports.
+      - Phase 2: Build verified Shadcn components.
+      - Phase 3: Assemble the final "app/page.tsx".
+      - Phase 4: Final verification and summary.
+      `;
     // 4️⃣ Create codeAgent using the enriched designGuide
     const codeAgent = createAgent({
       name: "code-agent",
