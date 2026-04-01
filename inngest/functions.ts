@@ -88,39 +88,63 @@ export const codeAgentFunction = inngest.createFunction(
     console.log("[DEBUG] BASE DESIGN SYSTEM:", JSON.stringify(baseDesignSystem, null, 2));
 
     // 3️⃣ Create designAgent → enhance JSON and produce designGuide
+    const finalPrompt = `
+### ROLE
+You are a Senior UI/UX Systems Architect. Your goal is to generate a deterministic, production-grade design system and a structured UI plan that a coding agent can execute without guessing.
+
+### STEP 0: INTENT DETECTION
+Analyze the user request:
+- PATH A (FIX/MODIFY): Minor changes or bug fixes.
+- PATH B (NEW BUILD): Full page or feature.
+
+### STEP 1: DESIGN TOKENS (HSL SHADCN BRIDGE)
+- Typography: Two Google Fonts (Heading + Body)
+- Colors: Provide HSL for --primary, --secondary, --background, --foreground, --muted, --accent, --border
+- Layout: Base spacing unit (4px/8px), --radius, padding, card radius
+
+### STEP 2: COMPONENT & SECTION HIERARCHY
+- Atoms: List all Shadcn/UI components required
+- Sections: Composition instructions for Hero, Features, Grid, Footer
+- Page: Vertical assembly
+
+### FEW-SHOT EXAMPLES
+#### PATH A
+User: "Fix button overlap"
+Architect Output: INTENT: FIX, Analysis + Corrections + Coder Steps
+
+#### PATH B
+User: "Build dark-mode landing page for a gym"
+Architect Output: INTENT: NEW BUILD, HSL Tokens Table, Fonts, Components, Section Layouts, Execution Plan
+
+### HARD RULES
+- NO RAW HEX, only HSL
+- NO FAKE CLASSES
+- LUCIDE React icons only
+- SHADCN first, always verify component exists
+- Provide skeleton JSX if component does not exist
+- Iterative build: Read → Build → Verify → Fix → Repeat
+
+### OUTPUT FORMAT
+1. INTENT TYPE
+2. DESIGN TOKENS (HSL & Fonts)
+3. COMPONENT INVENTORY
+4. SECTION ARCHITECTURE
+5. EXECUTION STEPS FOR CODER
+
+Strictly follow this guide.
+`;
+
+
     const designAgent = createAgent({
       name: "design-agent",
       description: "Generates a complete high-fidelity design guide and sample code snippets for a Next.js + Tailwind project",
-      system: `
-    You are a senior UI/UX architect and code designer.
-    You will generate a **complete design guide** for a web project, producing:
-    
-    1️⃣ **High-Fidelity Design Guide**
-    - Include typography, color palettes, spacing, shadows, and component styles.
-    - Include section layouts, hierarchy, hero sections, banners, cards, forms, and navigation.
-    - Suggest UX rules and best practices for interactions, responsiveness, and accessibility.
-    
-    2️⃣ **Illustrative Code Snippets**
-    - Only include code snippets **if it clarifies a layout or component usage**.
-    - Use Tailwind CSS for styles.
-    - If using a component library like shadcn/ui, only suggest components that exist (Button, Card, Input, etc.).
-    - Include React + Next.js examples where necessary.
-    - For visual illustrations, hero images, or banners, suggest a relevant Unsplash URL, with alt text and a short explanation of why it fits.
-    
-    3️⃣ **Constraints**
-    - Do not depend on any external base design system.
-    - Produce consistent output across runs for the same instructions.
-    - The output must be **deterministic and reusable** by a coding agent.
-    - Output a single coherent textual guide that can be fed directly into a code-generating agent.
-    
-    Output ONLY:
-    - The complete design guide text.
-    - Include small code snippets **inline only if needed**, otherwise keep textual instructions.
-    `,
+      system: finalPrompt,
       model: openai({ model: "gpt-4o" }),
     });
 
-    const { output: designOutput } = await designAgent.run(`Create a complete high-fidelity design guide based on this user request: ${event.data.value}`);
+    const { output: designOutput } = await designAgent.run(
+      event.data.value
+    );
     console.log("[DEBUG] DESIGN AGENT OUTPUT:", JSON.stringify(designOutput, null, 2));
 
     // Ensure codeAgent uses designAgent output
@@ -184,16 +208,25 @@ export const codeAgentFunction = inngest.createFunction(
         - Read → Build → Verify → Fix → Repeat
         `;
         const codeSystemPrompt = `
-        ${SHADCN_AWARE_CONSTRAINTS}
-        
-        ${PROMPT}
-        
-        STRICT VISUAL DIRECTION:
-        You MUST follow this design guide exactly. Do not use your own default styles or examples.
-        <design_guide>
-        ${designGuide}
-        </design_guide>
-        `;
+            ${SHADCN_AWARE_CONSTRAINTS}
+
+            ### 🏗️ ARCHITECT'S TECHNICAL SPECIFICATION
+            Everything inside <design_guide> is the single source of truth. Follow exactly.
+
+            <design_guide>
+            ${designGuide}
+            </design_guide>
+
+            ### 👤 USER REQUEST
+            ${event.data.value}
+
+            ### 🛠️ CODER EXECUTION PLAN
+            - Phase 0: Detect intent (fix vs new build)
+            - Phase 1: Apply HSL Tokens and Typography
+            - Phase 2: Build Atoms and Sections (Shadcn verified)
+            - Phase 3: Assemble Page.tsx
+            - Phase 4: Iteratively verify imports, skeletons, and run app
+            `;
     // 4️⃣ Create codeAgent using the enriched designGuide
     const codeAgent = createAgent({
       name: "code-agent",
