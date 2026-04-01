@@ -14,11 +14,17 @@ type AgentState = {
   summary: string;
   files: Record<string, string>;
 };
+type MessageForState = {
+  type: "text";
+  role: "assistant" | "user";
+  content: string;
+};
 
 // Safe helper for extracting text content
 function getMessageContent(msg: Message | undefined): string {
   if (!msg) return "";
-  if ("content" in msg) {
+  // Only text messages have content
+  if (msg.type === "text") {
     if (Array.isArray(msg.content)) return msg.content.join("");
     if (typeof msg.content === "string") return msg.content;
   }
@@ -163,10 +169,10 @@ ${JSON.stringify(baseDesignSystem, null, 2)}
       description: "An expert coding agent",
       system:
   (designGuide || "Fallback: sensible defaults") +
-  "\n\n" +
-  PROMPT +
-  "\n\n" +
-  SHADCN_AWARE_CONSTRAINTS,
+      "\n\n" +
+      PROMPT +
+      "\n\n" +
+      SHADCN_AWARE_CONSTRAINTS,
       model: openai({ model: "gpt-4o" }),
       tools: [
         createTool({
@@ -237,10 +243,49 @@ ${JSON.stringify(baseDesignSystem, null, 2)}
       lifecycle: {
         onResponse: async ({ result, network }) => {
           const lastText = lastAssistantTextMessageContent(result);
-          if (lastText && network?.state?.data) network.state.data.summary = lastText;
+          if (lastText?.includes("<task_summary>") && network?.state?.data) {
+            network.state.data.summary = lastText;
+          }
           return result;
         },
-      },
+      }
+    });
+
+    const codeReviewAgent = createAgent({
+      name: "code-review-agent",
+      description: "Evaluates if the code/files produced are good enough to stop looping",
+      system: `
+    You are a pragmatic senior engineer.
+
+    Your job is NOT perfection.
+    Your job is to decide if the code/files are GOOD ENOUGH to ship.
+
+    Evaluate the following:
+    1. Core functionality implemented?
+    2. App runs without errors?
+    3. UI components present and correctly structured?
+
+    Ignore:
+    - Minor styling issues
+    - Animations or micro-polish
+
+    Return JSON:
+
+    {
+      "score": number (0-10),
+      "severity": "major" | "minor",
+      "should_continue": boolean,
+      "reason": string
+    }
+
+    Rules:
+    - score < 6 → major → should_continue = true
+    - score 6–7.5 → minor → should_continue = optional
+    - score > 7.5 → STOP → should_continue = false
+
+    Be practical, not perfectionist.
+    `,
+      model: openai({ model: "gpt-4o-mini" }),
     });
 
     // 5️⃣ Network execution
@@ -248,7 +293,47 @@ ${JSON.stringify(baseDesignSystem, null, 2)}
       name: "coding-agent-network",
       agents: [codeAgent],
       maxIter: 10,
-      router: async ({ network }) => network?.state?.data?.summary ? undefined : codeAgent,
+      router: async ({ network }) => {
+        // Get last state files
+        const currentFiles = network?.state?.data?.files || {};
+        const prevFiles = network?.state?.data?.prevFiles || {};
+        
+        // Check if files changed meaningfully
+        const filesUnchanged = JSON.stringify(currentFiles) === JSON.stringify(prevFiles);
+        network.state.data.prevFiles = currentFiles;
+    
+        if (filesUnchanged) {
+          // No meaningful changes, stop to prevent infinite loop
+          return undefined;
+        }
+    
+        const reviewPrompt = `
+        Please review the following code/files and summary:
+
+          FILES:
+          ${JSON.stringify(currentFiles, null, 2)}
+
+          SUMMARY:
+          ${network.state.data.summary || ""}
+          `;
+
+          const { output: reviewOutput } = await codeReviewAgent.run(reviewPrompt);
+          const reviewJsonText = getMessageContent(reviewOutput[0]);
+          const reviewJson = reviewJsonText ? JSON.parse(reviewJsonText) : null;
+    
+        if (!reviewJson) return codeAgent; // fallback to continue
+    
+        if (reviewJson.should_continue && reviewJson.severity === "major") {
+          return codeAgent; // loop again for major fixes
+        }
+    
+        if (reviewJson.score < 7.5 && reviewJson.severity === "minor") {
+          return codeAgent; // optional iteration for minor improvements
+        }
+    
+        // Otherwise stop looping
+        return undefined;
+      },
     });
 
     const result = await network.run(event.data.value, { state });
@@ -278,7 +363,7 @@ ${JSON.stringify(baseDesignSystem, null, 2)}
 
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await Sandbox.connect(sandboxId);
-      return `http://${sandbox.getHost(3000)}`;
+      return `https://${sandbox.getHost(3000)}`;
     });
 
     await step.run("save-result", async () => {
